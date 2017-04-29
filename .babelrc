@@ -1,0 +1,18 @@
+{
+  "presets": [ "react-native" ],
+  "plugins": [
+    ["module-rewrite", { "replaceFunc": "./replace-module-paths.js" }]
+  ]
+}
+
+// SyntaxError: 'import' and 'export' may appear only with 'sourceType: module' (1:0)
+//     at Parser.pp$5.raise (/Users/nicholasclark/git/rn-packager/node_modules/babylon/lib/index.js:4246:13)
+//     at Parser.pp$1.parseStatement (/Users/nicholasclark/git/rn-packager/node_modules/babylon/lib/index.js:1749:16)
+//     at Parser.pp$1.parseBlockBody (/Users/nicholasclark/git/rn-packager/node_modules/babylon/lib/index.js:2133:21)
+//     at Parser.pp$1.parseTopLevel (/Users/nicholasclark/git/rn-packager/node_modules/babylon/lib/index.js:1645:8)
+//     at Parser.parse (/Users/nicholasclark/git/rn-packager/node_modules/babylon/lib/index.js:1537:17)
+//     at Object.parse$1 [as parse] (/Users/nicholasclark/git/rn-packager/node_modules/babylon/lib/index.js:6466:37)
+//     at extractDependencies (/Users/nicholasclark/git/rn-packager/react-native/packager/react-packager/src/JSTransformer/worker/extract-dependencies.js:27:23)
+//     at transform (/Users/nicholasclark/git/rn-packager/react-native/packager/react-packager/src/JSTransformer/worker/worker.js:117:9)
+//     at module.exports (/Users/nicholasclark/git/rn-packager/react-native/packager/transformer.js:133:3)
+//     at transformCode (/Users/nicholasclark/git/rn-packager/react-native/packager/react-packager/src/JSTransformer/worker/worker.js:88:3)
