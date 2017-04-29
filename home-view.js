@@ -4,8 +4,9 @@ import Update from 'react-addons-update'
 import DD from './dd-bindings'
 import WebView from './webview'
 import SGListView from 'react-native-sglistview'
-import autoBind from 'react-autobind'
+import Prompt from 'react-native-prompt'
 const _ = require('lodash')
+const PQueue = require('p-queue')
 
 const { Alert, TouchableOpacity, Text, View, ScrollView, Image, AsyncStorage, Button, ListView } = ReactNative
 import Bazaar from 'bazaar-client'
@@ -20,8 +21,8 @@ var ScreenView = ReactNative.Platform.select({
 })()
 const isSandboxed = false
 
-const linkedInKey = '--'
-const linkedInSecret = '--'
+const linkedInKey = ''
+const linkedInSecret = ''
 const linkedInScopes = ['r_basicprofile', 'r_network'].join('%20')
 const linkedInRedirectURI = 'https://doubledutch.me'
 
@@ -49,6 +50,12 @@ class HomeView extends Component {
     }
     this.api = new Bazaar.Client(DD, options)
     this.state = { loading: true }
+    this.autoFollow = this.autoFollow.bind(this)
+    this.bulkMessage = this.bulkMessage.bind(this)
+    this._onNavigationStateChange = this._onNavigationStateChange.bind(this)
+
+    this.queue = new PQueue({ concurrency: 1 })
+    this.eventID = eventID
   }
 
   componentDidMount() {
@@ -165,11 +172,43 @@ class HomeView extends Component {
   }
 
   autoFollow() {
-    Alert.alert('Auto follow')
+    Alert.alert(
+      'Auto-Follow',
+      `Do you want to follow these ${this.state.matches.length} connections?`,
+      [
+        { text: 'Cancel', onPress: () => { }, style: 'cancel' },
+        {
+          text: 'Yes', onPress: () => {
+            DD.requestAccessToken((err, token) => {
+              const options = {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+              }
+
+              this.state.matches.forEach((m) => {
+                this.queue.add(() =>
+                  fetch(`https://api.doubledutch.me/v2/users/${m.user.Id}/following?isBundleCredentials=true&applicationid=${this.eventID}`,
+                    Object.assign({}, options, { body: JSON.stringify({ "Id": m.user.Id }) })
+                  )
+                    .then((response) => response.json())
+                    .catch((error) => {
+                      reject(error)
+                    })
+                    .then((result) => {
+                      resolve(result.Value)
+                    })
+                )
+              })
+            })
+          }
+        },
+      ],
+      { cancelable: false }
+    )
   }
 
   bulkMessage() {
-    Alert.alert('Bulk message')
+    this.setState({ promptVisible: true })
   }
 
   render() {
@@ -196,6 +235,20 @@ class HomeView extends Component {
               />
             </View>
           </ScrollView>
+
+          <Prompt
+            title="Write your message"
+            placeholder="..."
+            defaultValue=""
+            visible={this.state.promptVisible}
+            onCancel={() => this.setState({
+              promptVisible: false,
+              message: "You cancelled"
+            })}
+            onSubmit={(value) => this.setState({
+              promptVisible: false,
+              message: `You said "${value}"`
+            })} />
         </ScreenView>
       )
     }
@@ -207,7 +260,7 @@ class HomeView extends Component {
         {this.state.showAuthorize ?
           <WebView
             source={{ uri: `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${linkedInKey}&scope=${linkedInScopes}&state=${linkedInState}&redirect_uri=${encodeURIComponent(linkedInRedirectURI)}` }}
-            onNavigationStateChange={this._onNavigationStateChange.bind(this)}
+            onNavigationStateChange={this._onNavigationStateChange}
 
           /> : <ScrollView style={styles.container}>
             <Button style={{ marginTop: 20 }} title='Connect to LinkedIn' onPress={() => this.setState({ showAuthorize: true })} />
